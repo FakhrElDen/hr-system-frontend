@@ -56,6 +56,12 @@
           @click="goToCreateEmployee"
           class="mr-10 bg-blue-500 text-white px-4 py-2 rounded"
         >
+          Restore Deleted Records
+        </button>
+        <button
+          @click="goToCreateEmployee"
+          class="mr-10 bg-blue-500 text-white px-4 py-2 rounded"
+        >
           Export
         </button>
         <button
@@ -75,6 +81,7 @@
             <input type="checkbox" @change="toggleAll" :checked="allSelected" />
           </th>
           <th class="p-2 text-black">Name</th>
+          <th class="p-2 text-black">Department</th>
           <th class="p-2 text-black">Email</th>
           <th class="p-2 text-black">Position</th>
           <th class="p-2 text-black">Status</th>
@@ -83,11 +90,12 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="emp in employees.value" :key="emp.id" class="border-t">
+        <tr v-for="emp in employees" :key="emp.id" class="border-t">
           <td class="p-2">
             <input type="checkbox" :value="emp.id" v-model="selected" />
           </td>
           <td class="p-2 text-black">{{ emp.name }}</td>
+          <td class="p-2 text-black">{{ emp.department.name }}</td>
           <td class="p-2 text-black">{{ emp.email }}</td>
           <td class="p-2 text-black">{{ emp.position }}</td>
           <td class="p-2">
@@ -120,138 +128,107 @@
       </tbody>
     </table>
     <div v-if="loading" class="text-gray-500">Loading...</div>
-<div v-if="error" class="text-red-500">{{ error }}</div>
+    <div v-if="error" class="text-red-500">{{ error }}</div>
 
-<div class="flex justify-between items-center mt-4">
-  <button
-    @click="prevPage"
-    :disabled="currentPage === 1"
-    class="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
-  >
-    Previous
-  </button>
-  <span class="text-black">Page {{ currentPage }} of {{ lastPage }}</span>
-  <button
-    @click="nextPage"
-    :disabled="currentPage === lastPage"
-    class="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
-  >
-    Next
-  </button>
-</div>
+    <div class="flex justify-between items-center mt-4">
+      <button
+        @click="prevPage"
+        :disabled="currentPage === 1"
+        class="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+      >
+        Previous
+      </button>
+      <span class="text-black">Page {{ currentPage }} of {{ lastPage }}</span>
+      <button
+        @click="nextPage"
+        :disabled="currentPage === lastPage"
+        class="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+      >
+        Next
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import api from '@/plugins/axios'
+import { ref, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
+import api from "@/plugins/axios";
 
-const router = useRouter()
+const router = useRouter();
 
 // Reactive state
-const employees = ref([])
-const selected = ref([])
-const search = ref('')
-const hiredAtFilter = ref('')
-const statusFilter = ref('')
+const employees = ref([]);
+const selected = ref([]);
+const search = ref("");
+const hiredAtFilter = ref("");
+const statusFilter = ref("");
 
-const currentPage = ref(1)
-const perPage = 10
-const lastPage = ref(1)
-const loading = ref(false)
-const error = ref('')
+const currentPage = ref(1);
+const perPage = 10;
+const lastPage = ref(1);
+const loading = ref(false);
+const error = ref("");
 
-import axios from 'axios'
-
-
+import axios from "axios";
 
 async function fetchEmployees() {
   try {
-    const response = await axios.get('http://hr-system.localhost/api/employees', {
-      params: {
-        page: currentPage.value,
-        per_page: perPage,
-        search: search.value || undefined,
-        hired_at: hiredAtFilter.value || undefined,
-        status: statusFilter.value || undefined,
-      },
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`, // if you're using token auth
+    const response = await axios.get(
+      "http://hr-system.localhost/api/employees",
+      {
+        params: {
+          page: currentPage.value,
+          per_page: perPage,
+          search: search.value || undefined,
+          hired_at: hiredAtFilter.value || undefined,
+          status: statusFilter.value || undefined,
+        },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`, // if you're using token auth
+        },
       }
-    })
-    console.log(response.data)
+    );
+    employees.value = response.data.data;
+    lastPage.value = response.data.last_page;
   } catch (err) {
-    console.error(err)
+    console.error(err);
   }
-}
-
-// Fetch employees with filters and pagination
-async function fetchEmployees() {
-  // loading.value = true
-  // // try {
-  //  const response = await axios.get('http://hr-system.localhost/api/employees', {
-  //     params: {
-  //       page: currentPage.value,
-  //       per_page: perPage,
-  //       search: search.value || undefined,
-  //       hired_at: hiredAtFilter.value || undefined,
-  //       status: statusFilter.value || undefined,
-  //     },
-  //   })
-  //   console.log(response)
-    // const response = await api.get('/employees', {
-    //   params: {
-    //     page: currentPage.value,
-    //     per_page: perPage,
-    //     search: search.value || undefined,
-    //     hired_at: hiredAtFilter.value || undefined,
-    //     status: statusFilter.value || undefined,
-    //   },
-    // })
-    // Adjust based on your API structure
-    // employees.value = response.data.data ?? response.data
-    // lastPage.value = response.data.last_page ?? 1
-  // } catch (err) {
-  //   console.error(err)
-  //   error.value = 'Failed to load employees.'
-  // } finally {
-  //   loading.value = false
-  // }
 }
 
 // Watch filters and reload automatically
 watch([search, hiredAtFilter, statusFilter, currentPage], () => {
-  fetchEmployees()
-})
+  fetchEmployees();
+});
 
 // On component mount
-onMounted(fetchEmployees)
+onMounted(fetchEmployees);
 
 // Bulk delete
 async function bulkDelete() {
+  console.log(Array.from(selected.value))
   try {
-    await api.post('/employees/bulk-delete', {
-      ids: selected.value
-    })
+    await api.delete("/employees/bulk-delete", {
+      ids: Array.from(selected.value),
+    });
     // Refresh after deletion
-    await fetchEmployees()
-    selected.value = []
+    await fetchEmployees();
+    selected.value = [];
   } catch (err) {
-    console.error(err)
-    alert('Bulk delete failed.')
+    console.error(err);
+    alert("Bulk delete failed.");
   }
 }
 
 // Single delete
-async function deleteOne(id) {
+async function deleteOne(emp) {
   try {
-    await api.delete(`/employees/${id}`)
-    await fetchEmployees()
-    selected.value = selected.value.filter((s) => s !== id)
+    await api.delete(`/employees/${emp}`);
+    await fetchEmployees();
+    selected.value = selected.value.filter((s) => s !== id);
   } catch (err) {
-    console.error(err)
-    alert('Delete failed.')
+    console.error(err);
+    alert("Delete failed.");
   }
 }
 
@@ -263,25 +240,25 @@ async function deleteOne(id) {
 
 function toggleAll(e) {
   if (e.target.checked) {
-    selected.value = employees.value.map((emp) => emp.id)
+    selected.value = employees.value.map((emp) => emp.id);
   } else {
-    selected.value = []
+    selected.value = [];
   }
 }
 
 function goToCreateEmployee() {
-  router.push({ name: 'employee-create' })
+  router.push({ name: "employee-create" });
 }
 
 // Pagination controls
 function nextPage() {
   if (currentPage.value < lastPage.value) {
-    currentPage.value++
+    currentPage.value++;
   }
 }
 function prevPage() {
   if (currentPage.value > 1) {
-    currentPage.value--
+    currentPage.value--;
   }
 }
 </script>
