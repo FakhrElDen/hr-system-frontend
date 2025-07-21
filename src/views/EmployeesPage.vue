@@ -59,7 +59,7 @@
           Restore Deleted Records
         </button>
         <button
-          @click="exportEmployees()"
+          @click="exportEmployees"
           class="mr-10 bg-blue-500 text-white px-4 py-2 rounded"
         >
           Export
@@ -284,4 +284,27 @@ function prevPage() {
     currentPage.value--;
   }
 }
+
+async function exportEmployees() {
+  try {
+    const response = await axios.get('http://hr-system.localhost/api/employees/export', {
+      responseType: 'blob',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+
+    // Create a blob URL and download
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'employees.xlsx'); // filename
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (err) {
+    console.error('Export failed', err);
+  }
+}
+
 </script>
