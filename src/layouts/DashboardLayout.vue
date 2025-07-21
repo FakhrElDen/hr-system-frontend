@@ -1,3 +1,32 @@
+<script setup>
+import { useRouter } from 'vue-router'
+import axios from 'axios'
+
+const router = useRouter()
+
+async function logout() {
+  try {
+    // Call your backend logout endpoint
+    await axios.post('http://hr-system.localhost/api/auth/logout', {}, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    })
+
+    // Remove token from localStorage
+    localStorage.removeItem('token')
+
+    // Redirect to login page
+    router.push('/login')
+  } catch (err) {
+    console.error('Logout failed:', err)
+    // Still clear token and redirect just in case
+    localStorage.removeItem('token')
+    router.push('/login')
+  }
+}
+</script>
+
 <template>
   <div class="flex h-screen w-screen bg-gray-100">
     <!-- Sidebar -->
@@ -24,7 +53,7 @@
       <!-- Header -->
       <header class="bg-white shadow p-4 flex justify-between items-center">
         <h1 class="text-lg font-bold text-black">Dashboard</h1>
-        <button class="text-red-500">Logout</button>
+        <button class="text-red-500" @click="logout" >Logout</button>
       </header>
 
       <!-- Page content -->

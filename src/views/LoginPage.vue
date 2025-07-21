@@ -33,17 +33,13 @@ async function login() {
       password: password.value
     })
 
-    // assuming your API returns { token: '...', user: { ... } }
     const token = response.data.token
 
-    // Save token (for example in localStorage)
     localStorage.setItem('token', token)
 
-    // Optionally save user info
     localStorage.setItem('user', JSON.stringify(response.data.user))
 
-    // Redirect to dashboard
-    router.push('/dashboard')
+    router.push('/employees')
   } catch (error) {
     console.error(error)
     alert('Login failed. Check your credentials.')
