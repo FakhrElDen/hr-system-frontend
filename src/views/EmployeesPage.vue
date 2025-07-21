@@ -53,13 +53,13 @@
       <!-- RIGHT SECTION (Create button) -->
       <div class="mt-5">
         <button
-          @click="goToCreateEmployee"
+          @click="restoreTrashedEmployee"
           class="mr-10 bg-blue-500 text-white px-4 py-2 rounded"
         >
           Restore Deleted Records
         </button>
         <button
-          @click="goToCreateEmployee"
+          @click="exportEmployees()"
           class="mr-10 bg-blue-500 text-white px-4 py-2 rounded"
         >
           Export
@@ -81,6 +81,7 @@
             <input type="checkbox" @change="toggleAll" :checked="allSelected" />
           </th>
           <th class="p-2 text-black">Name</th>
+          <th class="p-2 text-black">photo</th>
           <th class="p-2 text-black">Department</th>
           <th class="p-2 text-black">Email</th>
           <th class="p-2 text-black">Position</th>
@@ -95,7 +96,16 @@
             <input type="checkbox" :value="emp.id" v-model="selected" />
           </td>
           <td class="p-2 text-black">{{ emp.name }}</td>
-          <td class="p-2 text-black">{{ emp.department.name }}</td>
+          <td class="p-2 text-black">
+            <img
+              v-if="emp.photo"
+              :src="emp.photo"
+              alt="Employee photo"
+              class="w-12 h-12 object-cover rounded-full"
+            />
+            <span v-else class="text-gray-400 italic">No photo</span>
+          </td>
+          <td class="p-2 text-black">{{ emp.department?.name }}</td>
           <td class="p-2 text-black">{{ emp.email }}</td>
           <td class="p-2 text-black">{{ emp.position }}</td>
           <td class="p-2">
@@ -114,7 +124,10 @@
           </td>
           <td class="p-2 text-black">{{ emp.hired_at }}</td>
           <td class="p-2 space-x-2">
-            <button class="bg-yellow-500 text-white px-2 py-1 rounded">
+            <button
+              @click="editEmployee(emp.id)"
+              class="bg-yellow-500 text-white px-2 py-1 rounded"
+            >
               Edit
             </button>
             <button
@@ -189,8 +202,10 @@ async function fetchEmployees() {
         },
       }
     );
+    console.log(response)
     employees.value = response.data.data;
-    lastPage.value = response.data.last_page;
+     lastPage.value = response.data.meta.last_page;
+    currentPage.value = response.data.meta.current_page;
   } catch (err) {
     console.error(err);
   }
@@ -206,9 +221,9 @@ onMounted(fetchEmployees);
 
 // Bulk delete
 async function bulkDelete() {
-  console.log(Array.from(selected.value))
+  console.log(Array.from(selected.value));
   try {
-    await api.delete("/employees/bulk-delete", {
+    await api.post("/employees/bulk-delete", {
       ids: Array.from(selected.value),
     });
     // Refresh after deletion
@@ -232,11 +247,15 @@ async function deleteOne(emp) {
   }
 }
 
-// Select / unselect
-// const allSelected = computed(() =>
-//   employees.value.length > 0 &&
-//   employees.value.every((emp) => selected.value.includes(emp.id))
-// )
+async function restoreTrashedEmployee() {
+  try {
+    await api.get(`/employees/restore`);
+    await fetchEmployees();
+  } catch (err) {
+    console.error(err);
+    alert("Restore failed.");
+  }
+}
 
 function toggleAll(e) {
   if (e.target.checked) {
@@ -248,6 +267,10 @@ function toggleAll(e) {
 
 function goToCreateEmployee() {
   router.push({ name: "employee-create" });
+}
+
+function editEmployee(id) {
+  router.push({ name: "employee-edit", params: { id } });
 }
 
 // Pagination controls

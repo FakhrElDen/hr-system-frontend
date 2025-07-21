@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import api from "../plugins/axios";
 
 const router = useRouter();
+const route = useRoute();
+const employeeId = route.params.id as string;
 
 // Form fields
 const name = ref("");
@@ -14,26 +16,43 @@ const salary = ref<number | null>(null);
 const hired_at = ref("");
 const status = ref("1");
 const photo = ref<File | null>(null);
-const department_id = ref(""); // NEW
+const department_id = ref("");
 
-// Departments list
+// Departments
 const departments = ref<{ id: number; name: string }[]>([]);
 
-// Errors
 const errors = ref<Record<string, string>>({});
 const submitting = ref(false);
 
-// Fetch departments on mount
+// Fetch departments & employee
 onMounted(async () => {
   try {
-    const response = await api.get("/employees/departments", {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    });
-    departments.value = response.data; // make sure your API returns array of departments
+    const [deptRes, empRes] = await Promise.all([
+      api.get("/employees/departments", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      }),
+      api.get(`/employees/${employeeId}/edit`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      }),
+    ]);
+    console.log(empRes);
+    console.log(deptRes);
+    departments.value = deptRes.data;
+
+    // prefill form with API data
+    const emp = empRes.data;
+    name.value = emp.name;
+    email.value = emp.email;
+    phone.value = emp.phone ?? "";
+    position.value = emp.position;
+    salary.value = emp.salary;
+    hired_at.value = emp.hired_at;
+    status.value = String(emp.status);
+    department_id.value = emp.department_id;
   } catch (err) {
-    console.error("Failed to fetch departments", err);
+    console.error("Failed to load data", err);
+    alert("Failed to load employee data");
+    router.push("/employees");
   }
 });
 
@@ -82,13 +101,17 @@ async function handleSubmit() {
 
   submitting.value = true;
   try {
-    const response = await api.post("/employees", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    });
-    console.log("Employee created:", response.data);
+    const response = await api.post(
+      `/employees/${employeeId}?_method=PUT`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+    console.log("Employee updated:", response.data);
     router.push("/employees");
   } catch (err: any) {
     console.error(err);
@@ -112,7 +135,7 @@ function goBack() {
 
 <template>
   <div class="p-6">
-    <h1 class="text-2xl font-bold mb-6">Create Employee</h1>
+    <h1 class="text-2xl font-bold mb-6">Edit Employee</h1>
 
     <form @submit.prevent="handleSubmit" class="space-y-4 max-w-xl">
       <!-- Name -->
@@ -225,7 +248,6 @@ function goBack() {
         />
       </div>
 
-      <!-- Buttons -->
       <div class="flex justify-between mt-6">
         <button
           type="button"
@@ -237,9 +259,9 @@ function goBack() {
         <button
           type="submit"
           :disabled="submitting"
-          class="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600 disabled:opacity-50"
+          class="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50"
         >
-          {{ submitting ? "Saving..." : "Save" }}
+          {{ submitting ? "Saving..." : "Update" }}
         </button>
       </div>
     </form>
