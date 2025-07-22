@@ -33,6 +33,10 @@ async function login() {
       password: password.value
     })
 
+    if(response.status_code ===  401) {
+      return alert('Login failed. Check your credentials.');
+    }
+
     const token = response.data.token
 
     localStorage.setItem('token', token)
@@ -41,7 +45,6 @@ async function login() {
 
     router.push('/employees')
   } catch (error) {
-    console.error(error)
     alert('Login failed. Check your credentials.')
   }
 }
